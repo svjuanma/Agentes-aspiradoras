@@ -34,10 +34,10 @@ def runSim(height: int, width: int, n: int, dirtPercentage: float, maxTime: int)
     Return:
         tuple: as in steps taken, % of clean cells in the end, the total of moves
     '''
-    model = VacuumModel(height = height, width = width, n = n, dirtPercentage = dirtPercentage, maxTime = maxTime)
-    totalCells: int = height * width
+    model = VacuumModel(height = height, width = width, n = n, dirtyPercentage = dirtPercentage)
     while dirtyCount(model) > 0 and model.steps < maxTime:
         model.step()
+    totalCells: int = height * width
     cleanCellsPercent: float = 100 * (totalCells - dirtyCount(model)) / totalCells
     totalMoves: int = sum(agent.moves for agent in model.agents)
     return model.steps, cleanCellsPercent, totalMoves
@@ -52,10 +52,14 @@ def main() -> None:
     Return:
         None
     '''
-    print("Hello from agentes-aspiradoras!")
 
     height, width = 10, 10
+    n = 29
     dirtyPercentage: float = 0.4
     maxTime: int = 700
-    rounds: int = 30
+
+    steps, cleanPercent, totalMoves = runSim(height, width, n, dirtyPercentage, maxTime)
+    print(f"Tiempo hasta que todas las celdas estén limpias (o tiempo máximo): {steps}")
+    print(f"Porcentaje de celdas limpias al final: {cleanPercent:.2f}%")
+    print(f"Número total de movimientos de los agentes: {totalMoves}")
 

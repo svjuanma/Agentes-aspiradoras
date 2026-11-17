@@ -1,126 +1,73 @@
-''' 
+'''
 # - Description: Vacuum cleaner (Agent) and Model class definitions
-# 
+#
 # - Authors:
 # A01802469 Juan Manuel Sanchez Velazquez
 # A01763687 David Elias Vargas Ayala
-# 
+#
 # - Creation date: November 15th 2026
 # - Last Modification: November 15th 2026
 '''
 
 import mesa
-from mesa import agentset
 from mesa.discrete_space import CellAgent
 from math import floor
 
 DIRECTIONS: list[tuple[int, int]] = [
-    (-1, -1), (-1, 0 ), (-1, 1),  (0, -1), (0, 1),  (1, -1) , (1, 0), (1, 1),
-] 
+    (-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1),
+]
 
 
 class VacuumAgent(CellAgent):
-    moves: int  = 0
-
-    def __init__(self, model: mesa.Model) -> None:
+    def __init__(self, model: mesa.Model, cell) -> None:
         super().__init__(model)
-        self.cell: mesa.discrete_space.Cell | None = None
-    
-    def clean(self):
-        ''' Cleans the current cell if dirty
-        
-        Args: 
-            None
+        self.cell = cell
+        self.moves = 0
 
-        Return:
-            None
-        '''
-
-        if self.cell is not None and self.cell.dirty:
+    def clean(self) -> None:
+        '''Cleans the current cell if dirty'''
+        if self.cell.dirty:
             self.cell.dirty = False
-    
-    def navigate(self):
-        '''Navigates from the cell to a random neighboring cell based on a grid navigation system,
-         updates the number of moves
-        
-        Args: 
-                    None
-        
-                Return:
-                    None
-        '''
-        if self.cell is None:
-            return
-        #Check if cell is dirty to clean it 
+
+    def navigate(self) -> None:
+        '''Cleans if the cell is dirty, otherwise moves to a random neighbor'''
         if self.cell.dirty:
             self.clean()
             return
-        #Get random direction to move
-        randomDir = self.random.choice(DIRECTIONS)
-        target = self.cell.connections.get(randomDir)
-
-        #Move to a dirty target
+        target = self.cell.connections.get(self.random.choice(DIRECTIONS))
         if target is not None:
-            self.move_to(target)
+            self.cell = target
             self.moves += 1
 
 
-
-
-
 class VacuumModel(mesa.Model):
-    def __init__(
-            self, 
-            height: int = 3, 
-            width: int = 3, 
-            n: int = 10, 
-            dirtyPercentage: float = 0.10) -> None:
-        ''' Vacuum cleaner model constructor.
-    
-        Args:
-            height: Grid's height for agents navigation. Defaults 3 (minimum logical threshold for a 8 neighbors grid).
-            width: Grid's width for agents navigation. Defaults 3 (minimum logical threshold for a 8 neighbors grid).
-            n: Agents number in simulation. Defaults 10.
-            dirtyPercentage: Initial percentage of cells being dirty.
+    def __init__(self, height: int = 3, width: int = 3, n: int = 10,
+                 dirtyPercentage: float = 0.10) -> None:
+        '''Vacuum cleaner model constructor.
 
-        Return:
-            None
+        Args:
+            height: Grid height. Defaults 3.
+            width: Grid width. Defaults 3.
+            n: Number of agents. Defaults 10.
+            dirtyPercentage: Initial percentage of dirty cells, in [0, 1].
         '''
         super().__init__()
+        if not 0 <= dirtyPercentage <= 1:
+            raise ValueError(f"Value {dirtyPercentage = } out of range.\n\tSet a float between 0 and 1")
+        self.dirtyCellsPercent = dirtyPercentage
 
-        # Create grid with vertical, horizontal and diagonal possible movements and declare dirtiness property
-        self.grid = mesa.discrete_space.OrthogonalMooreGrid((width,height), torus=False)
-        self.grid.create_property_layer("dirty", default_value=False, dtype=bool) 
+        self.grid = mesa.discrete_space.OrthogonalMooreGrid((width, height), torus=False)
+        self.grid.create_property_layer("dirty", default_value=False, dtype=bool)
 
-        self.agents: agentset.AgentSet[VacuumAgent] = VacuumAgent.create_agents(self, n)
+        # All agents start at (1, 1)
+        start = self.grid[(1, 1)]
+        VacuumAgent.create_agents(self, n, [start] * n)
 
-        # Check if dirtiness percentage is valid [0,1]
-        if dirtyPercentage <= 1 and dirtyPercentage >= 0: 
-            self.dirtyCellsPercent: float = dirtyPercentage 
-        else: 
-            raise ValueError(f"Value {dirtyPercentage =} out of range.\n\tSet a float between 0 and 1")
-        
-        # Place agents in location [1,1] of grid
-        for agent in self.agents:
-            cell = self.grid.all_cells.select(lambda cell: cell.position == (1,1))
-            agent.cell = cell
-
-        # Dirt cells
-        cells2Dirt: int = floor(width * height * dirtyPercentage)
-        for _ in range(cells2Dirt):
-            cell = self.grid.all_cells.select(lambda cell: not cell.dirty).select_random_cell()
+        # Dirty cells
+        cells2Dirt = floor(width * height * dirtyPercentage)
+        for cell in self.random.sample(list(self.grid.all_cells), cells2Dirt):
             cell.dirty = True
 
-
     def step(self) -> None:
-        ''' Step function to define what do agents do at every time unit
-        
-        Args:
-            None
-
-        Returns:
-            None
-
-        '''
-        for agent in self.agents:
-            agent.navigate() 
+        '''What every agent does at each time unit'''
+        self.agents.shuffle_do("navigate")
