@@ -11,19 +11,60 @@
 
 import mesa
 from mesa import agentset
+from mesa.discrete_space import CellAgent
 from math import floor
 
+DIRECTIONS: list[tuple[int, int]] = [
+    (-1, -1), (-1, 0 ), (-1, 1),  (0, -1), (0, 1),  (1, -1) , (1, 0), (1, 1),
+] 
 
-class VacuumAgent(mesa.Agent):
+
+class VacuumAgent(CellAgent):
+    moves: int  = 0
+
     def __init__(self, model: mesa.Model) -> None:
         super().__init__(model)
         self.cell: mesa.discrete_space.Cell | None = None
+    
+    def clean(self):
+        ''' Cleans the current cell if dirty
+        
+        Args: 
+            None
 
+        Return:
+            None
+        '''
+
+        if self.cell is not None and self.cell.dirty:
+            self.cell.dirty = False
+    
     def navigate(self):
-        ...
+        '''Navigates from the cell to a random neighboring cell based on a grid navigation system,
+         updates the number of moves
+        
+        Args: 
+                    None
+        
+                Return:
+                    None
+        '''
+        if self.cell is None:
+            return
+        #Check if cell is dirty to clean it 
+        if self.cell.dirty:
+            self.clean()
+            return
+        #Get random direction to move
+        randomDir = self.random.choice(DIRECTIONS)
+        target = self.cell.connections.get(randomDir)
 
-    def clean():
-        ...
+        #Move to a dirty target
+        if target is not None:
+            self.move_to(target)
+            self.moves += 1
+
+
 
 
 
@@ -82,4 +123,4 @@ class VacuumModel(mesa.Model):
 
         '''
         for agent in self.agents:
-            agent.navigate() # TBD
+            agent.navigate() 
