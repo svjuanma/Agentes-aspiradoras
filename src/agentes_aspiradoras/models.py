@@ -20,17 +20,41 @@ DIRECTIONS: list[tuple[int, int]] = [
 
 class VacuumAgent(CellAgent):
     def __init__(self, model: mesa.Model, cell) -> None:
+        '''Vacuum agent constructor.
+
+        Args:
+            model: The model the agent belongs to.
+            cell: The grid cell where the agent starts.
+        Returns: 
+            None
+        '''
         super().__init__(model)
         self.cell = cell
         self.moves = 0
 
     def clean(self) -> None:
-        '''Cleans the current cell if dirty'''
+        '''Cleans the current cell if dirty
+
+        Args:
+            None
+
+        Return:
+            None
+        '''
         if self.cell.dirty:
             self.cell.dirty = False
 
     def navigate(self) -> None:
-        '''Cleans if the cell is dirty, otherwise moves to a random neighbor'''
+        '''Cleans if the cell is dirty, otherwise moves to a random neighbor
+
+        Moving to a valid neighbor increments the agent's move counter.
+
+        Args:
+            None
+
+        Return:
+            None
+        '''
         if self.cell.dirty:
             self.clean()
             return
@@ -69,5 +93,12 @@ class VacuumModel(mesa.Model):
             cell.dirty = True
 
     def step(self) -> None:
-        '''What every agent does at each time unit'''
+        '''What every agent does at each time unit
+
+        Args:
+            None
+
+        Return:
+            None
+        '''
         self.agents.shuffle_do("navigate")
